@@ -14,16 +14,17 @@ The project is coordinated in South Africa by Nelson by Mandela University’s W
 Contents (main scripts)
 
 `1_Snapshot_source_functions`   
+
 	This is a set of customized functions created to analyze camera trap data, which includes:  
-		1. standardize names, columns, and filter non-mammals (among others)   
-		2. get only independent records of 60 mins (you can change this)  
-		3. Calculate RAI and species number analysis (general reports)  
-		4. put coordinates into the reports, create final outputs  
-		5. add the scientific name to each row  
-		6. function to put Digikam format to snapshot format  
-		7. create detection histories  
-		8. create a standard procedure for biodiversity analysis  
-		9. other simple but useful functions including general visualizations  
+	  	1. standardize names, columns, and filter non-mammals (among others)   
+	  	2. get only independent records of 60 mins (you can change this)  
+	  	3. Calculate RAI and species number analysis (general reports)  
+	  	4. put coordinates into the reports, create final outputs  
+	  	5. add the scientific name to each row  
+	  	6. function to put Digikam format to snapshot format  
+	  	7. create detection histories  
+	  	8. create a standard procedure for biodiversity analysis  
+	  	9. other simple but useful functions including general visualizations  
 
 Most of these functions are used in other scripts included in this repository
 
