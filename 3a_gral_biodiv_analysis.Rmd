@@ -1,0 +1,744 @@
+---
+title: "Build a general biodiversity report from Snapshot Camera trap data"
+output: github_document
+always_allow_html: true  
+---
+## Description
+
+This code provides a general protocol to build a tidy biodiversity report from Snapshot Camera Trap records. This consists of a series of general analysis including, species richness, relative abundance index and useful visualizations. If you want only the results in a tidy html, please refer to "3b_clean_biodiv_report" script. Other useful visualizations can be found in 2_species_exploration
+
+For more specific biodiversity analysis use script "biodiversity analysis".
+the input data is a species records table either with Zooniverse format or manually created with Digikam.
+
+OBJ:  1. clean table with standard sp names, cols and values 
+      2. calculate independence and create a temp file to get RAIs
+      3. create plots (richness, RAI, etc)
+
+
+### notes
+
+It is important to familiarized with the customized functions in 1_SNAPSHOT_source_functions, there might be some extra steps that need to be done by  researches to accommodate data and also to double check. For example, if the researcher needs very detailed number of individuals and sex they must explore and adapt raw data accordingly. For instance, due to the uncertainty of counting individuals by volunteers there are some strings including a range of values (e.g. 11-51". Since for this code we need a single number, the formulation takes the minimum number, but it is responsibility of the researcher to check this and adapt the code according to their ecological system and needs. 
+
+This is a sample script using a snapshot report from Mountain Zebra S1. In order to use this script for other sites, you have to adapt certain names in the arguments, but specially in the outputs (e.g. csv tables, figures, etc). It is important to have a clear idea of the sampling periods...see also 2_species_exploration. 
+
+Please give  credit to Lain E. Pardo, Snapshot Safari or WildEco Lab at Nelson Mandela University if you use this tool. 
+
+This is a work in progress if you want to contribute or find any issues please let us know.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## load libraries
+
+```{r, results='hide'}
+library(readr) #read cols as character  
+library(readxl)
+library(tidyverse)
+library(ggplot2)  
+library(hrbrthemes)
+library(lubridate)
+library(viridis)
+library(camtrapR) #for camera op matrix needed for other analysis
+source("1_SNAPSHOT_source_functions.R") # customized functions are store here, this must be included in the working directory
+```
+
+## creating a single standard df to work with  
+
+note: if report comes from DIGIKAM start from : "# For roaming sites and reports coming from DIGIKAM" start from lines xxx
+
+### load file
+
+```{r, results='hide'}
+rep_sp1 <- read_csv("data_in/MTZ_S1_full_report_0-50%_agreement_corrected_fin.csv") 
+```
+
+```{r}
+#check names quickly
+unique(rep_sp1$question__species)
+
+
+#standardize col number and names from original report before cbind
+
+rep_sp <- cols_snap_std(rep_sp1) 
+
+names(rep_sp)
+
+class(rep_sp$question__count_median)
+class(rep_sp$question__count_median)
+
+unique(rep_sp$site)
+
+# check some columns, if there are or different strings to those in the snapshot source functions amend accordingly
+
+colSums(is.na(rep_sp))
+unique(rep_sp$question__count_median)
+unique(rep_sp$question__count_max) # 
+
+#deal with NA
+#THIS IS ASSUMING NA =1, please adapt according to your needs.
+# important: Create DateTimeOriginal column for clean_table and other functions to work
+
+rep_sp <-rep_sp %>% 
+ mutate(question__count_median =replace_na(question__count_median, 1), 
+       question__count_max = replace_na(question__count_max,1)) %>% 
+  mutate(DateTimeOriginal = paste(capture_date_local, capture_time_local))
+
+write.csv(rep_sp, "temp_rep_sp.csv")
+
+```
+
+### 1_ standardize names of species
+
+
+```{r}
+df <- standardise_names(rep_sp)
+unique(df$question__species)
+```
+
+There might be some things more to check in the values or strings of some columns. Although in function clean_table we deal with a lot of this SNAPSHOT_source_functions.You might want to double check generic terms such as "zebra" or "antelope" and change accordingly
+
+
+### 2_ Clean table 
+Here we standardize species names, filter out no animals (e.g. fire), arrange some cols, force some strings to useful values, etc. There are two arguments here, you can include by_catch data by adding FALSE to rm_bycatch (birds etc, see formulation in the source functions to know what criteria was used), and you can also put only presence absence 
+
+```{r}
+df.clean <- clean_table(df, rm_bycatch = FALSE, pres_abs = FALSE)
+unique(df.clean$question__species)
+```
+
+### 3_ Get independent records only (60 mins threshold)
+
+```{r}
+#  before reorder chronologically in case, so:
+
+df.clean <- df.clean %>% dplyr::arrange(site, DateTimeOriginal)
+
+indep_records <- indep60(df.clean) #this takes time depending on the size of your file
+
+#save 
+write.csv(indep_records, "data_out/MTZ_clean_indep_report_snap_form.csv")
+
+```
+
+```{r}
+#check spp again
+unique(indep_records$site)
+unique(indep_records$question__species)
+names(indep_records)
+```
+
+### 4_ need standard name for sites including col "site" and "season"
+
+```{r}
+
+df1 <- separate(indep_records,season, c("code_loc", "season1"), sep = "_")  
+
+df2 <-unite(df1, site_ID, code_loc, site, sep = "_",remove =FALSE) #
+
+df2$site_ID <- as.factor(df2$site_ID) # need to convert to factor again
+nlevels(df2$site_ID)
+names(df2)
+unique(df2$site_ID)
+```
+
+
+
+### 5_ add scientific name column 
+
+```{r}
+#read file with traits that also contains the scientific names to be pulled
+
+scient_name <- read_csv("data_in/+traits_in_sp_records_updated.csv")
+
+# --- Merge tables
+# Select a subset of columns from scient_name table
+
+scient_name_sub <- scient_name %>% dplyr::select(Snapshot.Name, Scientific.Name)
+
+#add a common column to join
+
+scient_name_sub$question__species <- scient_name_sub$Snapshot.Name
+
+# Merge the 2 tables, keeping all data in new filtered report (df.filtered) in the left hand side table (data table 'table")
+
+df2$question__species <- as.character(df2$question__species)
+
+mergenames <- dplyr::left_join(df2, scient_name_sub, by = "question__species")
+mergenames$question__species <- as.factor(mergenames$question__species) # coerce back to factors
+names(mergenames)
+```
+
+
+
+# 6_ select variables of interest and change name col (original report +new cols)
+
+```{r}
+final.df <- cols_need(mergenames)  #final clean df with independent records only, clear column names ready for use
+names(final.df)
+
+#quickly inspect sp
+(spmergedrep <- unique(final.df$Common.Name))
+
+# save doc
+write.csv(final.df,"data_out/MTZ_final_sp_rep_ind60_S_merged.csv")
+
+```
+
+FOR THE REPORTS WE NEED TO FILTER HERE WITHOUT THE BYCATCH.... and then run the other part of the script
+
+
+# RICHNESS AND RAI 
+
+
+#### 1. camera trap operation matrix -----------------------------------------
+
+basically the matrix of the design (cameras and days..)
+need: df with sites, coordinates, start and end day of survey (minimum): the metadata or covariates, need the species records cleaned
+
+We will use the metadata table for this to put cam days and start, end of survey. All sites must be there but will better filter by reserve probably
+
+
+```{r}
+cameras <- read_csv("data_in/1_Metadata_all_fixed_as_snapshot_TEMP_CSV.csv") #contains the covars/metadata too
+str(cameras)
+#unique(cameras$Camera.Site.Concatenate)
+```
+
+# 1. create the cols for effort start and end date, use first and last photo cols on spp reports final
+
+#read file (fixed report)
+
+```{r}
+spp_rec <- final.df
+#or load it from the file we created (some times is better to avoid issues)
+#spp_rec <- read_csv("data_out/MTZ_final_sp_rep_ind60_S_merged.csv") 
+```
+
+```{r}
+#quick explo
+str(spp_rec)
+class(spp_rec$Photo.Date)
+unique(spp_rec$Camera.Site)
+unique(spp_rec$Common.Name)
+```
+
+
+
+### filter out by catch
+so work only with mammals for reports 
+
+```{r}
+BYCATCH <- c("birdofprey", "birdother", "bustardkori", "bustardludwigs", "guineafowl",
+               "squirreltree", "reptilesamphibians", "human", "bustarddenhams",
+               "secretarybird","tortoise", "domesticanimal", "ostrich", "bat",       "reptilesamphibians", "fowlguinea","spider", "reptile", "insect", "bustardludwig's","craneblue", "horse")
+
+mammals <- filter(spp_rec,
+              !(Common.Name %in% BYCATCH))
+unique(mammals$Common.Name)
+
+spp_rec <- mammals
+```
+
+
+### Check reports periods
+
+
+```{r}
+spp_rec$Photo.Date <- as.Date(spp_rec$Photo.Date, format="%Y-%m-%d") 
+spp_rec$DateTimeOriginal <- as.POSIXct(spp_rec$DateTimeOriginal)
+class(spp_rec$Photo.Date)
+max(spp_rec$Photo.Date)
+
+min(spp_rec$Photo.Date)
+max(spp_rec$Photo.Date)
+
+```
+
+
+# 
+#using final spp report file cleaned with good var 
+
+
+```{r}
+unique(spp_rec$Reserve.Location)
+table(spp_rec$Camera.Site) 
+
+# getting last picture date for all sites as end date of survey, if this is not the case,  change
+
+#tibble with new cols of survey period
+surv_lenght <- survey_period(spp_rec) #IF UNSURE ABOUT STARTING DATES
+surv_lenght
+
+#surv_lenght <- survey_period2(spp_rec) 
+
+```
+note: if you are sure about the starting date then don´t use "min(photo.date)as start date, use "Setup.Date" from cameras filter by site (e.g.MTZ_Cams); 
+use function "survey_period2", then manually add start date en mutate for subtraction to cam days, for example:
+
+```{r, include=FALSE}
+temp_MTZ_cams <- filter(cameras, Code.Loc.Snap == "MTZ")
+First.Photo.Date <- temp_MTZ_cams$Setup.Date
+#now paste it into survlengh and add the difference for cam days
+surv_leng <- cbind(surv_lenght,First.Photo.Date)   #check order is equal!
+surv_leng <- surv_lenght %>% mutate(
+Act.Days = surv_lenght$Last.Photo.Date - surv_lenght$First.Photo.Date)
+```
+
+Working with the survey period demands deep exploration of data, be mindful that there might be gaps between rolls, within roles or between seasons and within seasons, so use exploration code for some visualizations and set the begin and end of survey correctly
+
+
+### merge survey effort (surv_lenght)
+now merge this info (first,last photo,cam days as a column into the cameras doc (metadata) 
+explore this part carefully, there might be dates that don´t match and errors can occur
+
+```{r}
+#1. rename col Camera.Site to join with camera df (Camera.Site.Concatenate which is the one in cameras)
+
+surv_lengh2 <- surv_lenght %>% rename(Camera.Site.Concatenate = Camera.Site)
+
+
+# 2. standardize dates  in cameras
+names(cameras)
+class(cameras$Setup.Date)
+unique(cameras$Setup.Date)
+
+#cameras$parse_Setup_date <- lubridate::parse_date_time(x = cameras$Setup.Date,
+                                               #       order = c("dmY", "Ymd","dmy"))#now done from input file..no need here
+
+# join
+join <- dplyr::left_join(cameras, surv_lengh2, by = "Camera.Site.Concatenate") #there are some NA as soon as I have all sites, there should be no NA
+
+#here we have to filter by the reserve to avoid NA and other stuff in future analysis
+
+MTZ_cams <- join %>%
+  filter(Code.Loc.Snap == "MTZ")   # object to work with
+
+colSums(is.na(MTZ_cams)) #for Somkhanda, there are 11 sites with 0 nights!!
+
+
+MTZ_cams <-MTZ_cams %>% 
+  filter(!is.na(MTZ_cams$Act.Days))
+
+
+names(MTZ_cams)
+class(MTZ_cams$Last.Photo.Date)
+class(MTZ_cams$First.Photo.Date)
+class(MTZ_cams$Camera.Site.Concatenate)
+
+#Rename back MTZ_CAMS FOR Camera.Site
+
+MTZ_cams <- MTZ_cams %>% rename(Camera.Site = Camera.Site.Concatenate)
+
+class(MTZ_cams$Camera.Site)
+unique(spp_rec$Common.Name) #
+
+#temp file one reserve only with survey length and previous metadata
+
+#write.csv(MTZ_cams, "data_out/MTZ/MTZ_cams.csv")
+#MTZ_cams <- read_csv("data_out/MTZ/MTZ_cams.csv")
+
+# name of stations
+unique(MTZ_cams$Camera.Site) 
+unique(spp_rec$Camera.Site)
+
+
+```
+
+
+
+
+# 2. Operation matrix all sites
+
+Check "2_species_exploration" of records for better plots
+
+```{r}
+cam_op <- cameraOperation(CTtable = MTZ_cams,    
+                          setupCol = "First.Photo.Date",
+                          retrievalCol = "Last.Photo.Date",
+                          stationCol = "Camera.Site",
+                          writecsv = T,
+                          hasProblems  = FALSE,
+                          outDir = "data_out")
+
+
+camopPlot <- function(camOp){
+  which.tmp <- grep(as.Date(colnames(camOp)), pattern = "01$")
+  label.tmp <- format(as.Date(colnames(camOp))[which.tmp], "%Y-%m")
+  at.tmp <- which.tmp / ncol(camOp)
+  
+  image(t(as.matrix(camOp)), xaxt = "n", yaxt = "n", col = c("blue", "grey70"))
+  axis(1, at = at.tmp, labels = label.tmp)
+  axis(2, at = seq(from = 0, to = 1, length.out = nrow(camOp)), labels = rownames(camOp), cex.axis=0.6,
+       las = 1,  xlab = "wt", ylab = "mpg")
+   abline(v = at.tmp, col = rgb(0,0,0, 0.2))
+  box()
+}
+
+jpeg(file="MTZ_camplot.jpeg", width =571, height = 421, res = 96)   
+#check main folder for image and copy
+camopPlot(cam_op)
+ 
+#dev.off()
+
+
+```
+
+
+# 3. Survey summary reports  for subsequent analyses 
+
+### call spp records object
+
+
+```{r}
+survey_rep <- surveyReport(recordTable = spp_rec,
+                            CTtable = MTZ_cams,
+                            speciesCol = "Common.Name", 
+                            stationCol = "Camera.Site",
+                            setupCol = "First.Photo.Date", 
+                            retrievalCol = "Last.Photo.Date",
+                            recordDateTimeCol = "DateTimeOriginal",
+                            CTHasProblems = F,
+                            makezip = F, # 
+                            sinkpath = "data_out") # 
+```
+Be careful, values in CTtable vs recordTable (stationcol) should match
+if there are problems you can try:
+
+```{r}
+
+# show all unique entries of the sites ID in spp records that are not in the _cams (cameras base)
+del_cams <-unique(spp_rec$Camera.Site)[!unique(spp_rec$Camera.Site) %in% MTZ_cams$Camera.Site]
+
+```
+
+
+# REPORTS   
+
+  
+### note: the report (survey_rep) is a list class with 5 elements:
+
+survey_rep[[1]] #camera trap operation  (similar to input but with effort) 
+survey_rep[[2]] #numMTZ of species by station!! IMPORMTZT
+survey_rep[[3]] #numMTZ of events and numMTZ of stations by species (rememMTZ not standardise by effort)
+survey_rep[[4]] #numMTZ of species and events by station
+survey_rep[[5]] #equal to 4 except for the fat that it contains unobserved species with n_eMTZts = 0
+
+So save them to be able to retrieve them afterwards.
+```{r}
+write.csv(survey_rep[[1]], "data_out/details_indiv_reports/1.MTZ_camtrap_operation.csv")
+write.csv(survey_rep[[2]], "data_out/details_indiv_reports/2.MTZ_#spp_by_station.csv")
+write.csv(survey_rep[[3]], "data_out/details_indiv_reports/3.MTZ_events+#station_by_spp.csv")
+write.csv(survey_rep[[4]], "data_out/details_indiv_reports/4.MTZ_#spp+#events_by_station.csv")
+write.csv(survey_rep[[5]], "data_out/details_indiv_reports/5.MTZ_#obs&notobsspp+#events_by_station.csv")
+
+```
+
+
+##  General inventory   
+
+#### Number of observed species across the study area 
+
+
+```{r, fig.cap="Fig.1.Boxplot of species observed in the study area"}
+r2 <- survey_rep[[2]]
+
+ggplot(r2, aes(x = "", y= n_species)) + 
+  geom_boxplot(alpha=0.3, width = 0.5, color = "blue",fill = "lightblue") +
+  theme(legend.position="none") +
+  ggtitle("Boxplot of observed species across sites") +
+  geom_jitter(color="black", size=1, alpha=0.9) +
+  labs(y="Number of species", x = "") +
+  theme(plot.margin = unit(c(0.5,0.5,0.5,0.5),"cm")) 
+ggsave((filename = "figures/MTZ_boxplot_sp_richness.jpg"))
+
+```
+  
+
+
+
+## Number of species detected at each camera site (from report 2)
+
+```{r}
+(fig_r2 <- spp_station_r2(r2))
+ggsave(filename = "figures/MTZ_barplot_sp_per_cam.jpg")
+```
+
+
+## Number of camera sites where species were detected (from report 3)
+
+
+```{r}
+r3 <-survey_rep[[3]] 
+(fig_r3 <- station_spp_r3(r3))
+ggsave(filename = "figures/MTZ_barplot_cams_per_species.jpg")
+```
+
+### Number of events per station from rep 3 (not stantardized by effort!!)
+
+
+```{r}
+r3 <-survey_rep[[3]] 
+(fig_r3 <- events_spp_r3(r3))
+ggsave(filename = "figures/MTZ_barplot_events_per_species.jpg")
+```
+
+
+## 5. Plot richness  
+
+the CTtable (cameras) must be just for each reserve otherwise will graph all sites untidy
+
+1st we need to have each site with its corresponding coordinates. #so lets use report 2 (2.#spp_by_station)  
+
+
+```{r}
+spp_rich <- read.csv("data_out/details_indiv_reports/2.MTZ_#spp_by_station.csv", stringsAsFactors = FALSE) 
+```
+
+
+
+#add the location col from cameras/metadata (per reserve)
+#MTZ_cams <- read.csv("data_out/MTZ/MTZ_cams.csv")
+```{r}
+lat.long <- select(MTZ_cams, "Camera.Site", "Lat_Y", "Long_X")
+head(lat.long)
+```
+
+
+
+#merge by sites
+
+```{r}
+mergesites <- dplyr::left_join(spp_rich, lat.long, by = "Camera.Site", row.names=NULL) 
+
+#mergesites$Camera.Site <- as.factor(mergesites$Camera.Site) # coerce back to factors
+str(mergesites)
+#delete NA row
+#mergesites <-mergesites %>%    #kruger had NA in coordinates one site
+ #filter(!is.na(mergesites$Long_X))
+#write.csv(mergesites, "data_out/MTZ/details_indiv_reports/2.MTZ_#spp_by_station+coord.csv", row.names = FALSE)
+
+#mergesites <- read.csv("data_out/MTZ/2.#spp_by_station+coord.csv",  row.names = 1)
+
+min(mergesites$Long_X) # 
+max(mergesites$Long_X) #
+
+
+min(mergesites$Lat_Y)
+max(mergesites$Lat_Y)
+```
+
+## Spatial distribution of species richness
+(basic scatter plot but tidy)
+To put a google maps in the background see 1_species_exploration
+
+```{r}
+
+(spp_richnes_plot<- fig_sp_richness(mergesites))
+ggsave(filename = "figures/MTZ_Sp_richnes_cams.jpg")
+```
+
+
+# RAI (capture freq)
+ 
+CAPTURE FREQUENCIES OR RAI (RELATIVE ABUNDANCE INDEX) STANDARIZED BY EFFORT (OF STUDY AREA)
+we need the cam operation and rep5
+
+```{r}
+effort<- read.csv("data_out/details_indiv_reports/1.MTZ_camtrap_operation.csv", header = TRUE) 
+
+rep5 <- read.csv("data_out/details_indiv_reports/5.MTZ_#obs&notobsspp+#events_by_station.csv", header = TRUE)
+
+str(effort)
+effort <- effort[,-1]
+
+effort <- effort%>%
+ filter(n_nights_active >0)  
+
+rep5 <- rep5[,-1] 
+
+#merge
+new.mat <- merge(x = effort, y = rep5, by = "Camera.Site", all = TRUE)
+
+write.csv(new.mat, "data_out/details_indiv_reports/MTZ_new.mat_for_RAI.csv")
+#new.mat <- read.csv("data_out/MTZ/MTZ_new.mat_for_RAI")
+
+```
+
+
+
+## Basic information per species
+This table include information about Relative Abundance Index or capture frequencies standardized by effort at the grid level (RAI.Gral) and by each camera trap effort (RAImean), as well as number of sites occupied (Sites.Occ) and naive occupancy (Occ.Naive)
+
+Here we have a df with important summary information, including richness, events, naive occupancy, etc
+
+
+```{r}
+#new.mat <- read_csv("data_out/MTZ_new.mat_for_RAI")
+# compute RAI´S, occ, and other in one go
+#RAI() = events (not real abundance col)
+
+RAI_calc_table <- RAI_events(new.mat)
+
+library(kableExtra)
+RAI_calc_table %>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)
+write.csv(RAI_calc_table, "data_out/+MTZ_final_table_Calc.csv", row.names = FALSE)
+
+
+```
+
+###  Bar Plot for RAI General 
+
+This plot shows the Relative abundance index (better called capture frequencies) of all species, using the total camera days so comparison should be taken cautiously
+
+
+```{r}
+(fig_RAIgral <- RAI_gral_barplot(RAI_calc_table))
+ggsave(filename = "figures/MTZ_barplot_RAI.Gral_per_species.jpg")
+```
+
+### RAI alt (events) apply to new.mat 
+
+```{r}
+names(new.mat)
+RAIalt <- with(new.mat, round((n_events/n_nights_active)*100, 2))
+table.2 <- cbind(new.mat, RAIalt)
+table.2
+names(table.2)
+write.csv(table.2, "data_out/MTZ_RAIalt_station_events.csv")
+```
+
+
+### plot for RAI alt
+This plot is probably preferable as now we are accounting for the effort of each camera site, but this depends on tne question. Although comparison between species should still be taken cautiously, this is a good way to see patterns.
+
+```{r}
+plot <- ggplot(table.2, aes(x=Common.Name, y= RAIalt, fill=Common.Name)) + 
+  geom_boxplot(alpha=0.3) +
+  ylim(0, 50) +   # can´t do with function as this y lim will vary easier one by one
+  theme(legend.position="none") +
+  theme(axis.text.x  = element_text(angle = 90,hjust = 1, vjust = 0.5)) +
+  ggtitle("RAI alt (std) per species") +
+  labs(y="RAI alt", x = "Species")
+ggsave(filename = "figures/MTZ_boxplot_RAI.alt_per_species.jpg")
+
+plot
+```
+
+
+## Use RAIalt and plot 
+
+
+### merge coordinates and sites
+
+```{r}
+#bring df with coordinates (from CTtable or metadata for the reserve in previous steps)
+#MTZ_cams <- read_csv("data_out/MTZ/MTZ_cams.csv")
+
+lat.long <- select(MTZ_cams, "Camera.Site", "Lat_Y", "Long_X")
+
+
+mergesites2 <- dplyr::left_join(table.2, lat.long, by = "Camera.Site", row.names=NULL) 
+
+str(mergesites2)
+
+
+write.csv(mergesites2, "data_out/details_indiv_reports/MTZ_RAIalt+coord.csv", row.names = FALSE)
+
+
+# Bring the IUCN trait file to with RAIalt+coord so we can do selective plots per species or all IUCN cat
+# at once
+
+
+#traits file with scientific names, IUCN cat and others...
+
+IUCN <- read_csv("data_in/+traits_in_sp_records_updated.csv")
+
+
+merged.table <- mergesites2 %>% left_join(IUCN, by = c("Common.Name" = "Snapshot.Name"))
+# Select only relevant IUCN categories
+df.IUCN <- merged.table %>% dplyr::filter(IUCN.Cat %in% c("VU", "CR", "EN"))
+
+
+unique(df.IUCN$Common.Name) #
+
+# which species are threatened?
+
+sel_spp <- IUCN %>% 
+  filter(IUCN.Cat %in% c("VU", "CR", "EN"))  
+
+sel_spp
+#13 spp are threatened should not be more than that ever in the reserves
+
+
+```
+
+
+
+
+# individual RAI plot  
+
+
+
+```{r}
+fig_RAI_spp(df.IUCN, species = "zebramountain") #
+# species is the snapshot name here
+```
+
+
+
+#  Plot several species based on IUCN cat  
+
+for this use the traits doc.
+
+need two files: 1) scientific names and other info like IUCN cat:
+traits <- read_csv("data_in/traits_spp_scientif_names_snapshot_names.csv")
+ and 2. file with RAIalt (created above)
+function to apply for each spp is fig_RAI_spp
+This will automatically create a file (jpg) for each threatened species without need of doing it one by one (saved in figures)
+
+
+```{r}
+# ---- Loop across multiple species and store all graphs in a list
+
+unique_names <- unique(df.IUCN$Common.Name)
+grlist <- lapply(unique_names, 
+                 function(spp) fig_RAI_spp(df.IUCN, species = spp))
+grlist
+
+# Name list to access each species easier
+
+# Change it to unique_names
+names(grlist) <- unique_names
+
+#unique(grlist)
+
+# ---- Plot just one graph by hand
+# grlist[[1]]
+# grlist$rabbitriverine  # Now works
+
+# ---- Save each graph in a separate file in the current working directory
+names <- names(grlist) # Plot all 7 graphs
+
+for(s in names){
+  g <- grlist[[eval(s)]] # double brackets and store in object g
+  ggsave(filename = paste0("figures/MTZ_RAIalt_",s, ".jpg"), g) # draw object g #not reading the folder, capy from wd
+}
+
+#check main folder and copy
+
+
+```
+ 
+
+# end ---
+
+```
+
+
+
+

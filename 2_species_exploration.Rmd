@@ -1,0 +1,559 @@
+---
+title: "Camera trap species exploration"
+output: github_document
+author: "Lain E. Pardo"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Description
+This code provides a general protocol for exploring camera trap data from Snapshot Safari Project. 
+
+This is based on the Snapshot safari project South Africa, but can be applied to any camera based study. This is a sample script using a snapshot report from Mountain Zebra S1. In order to use this script for other sites, you have to adapt certain names in the arguments, but specially in the outputs (e.g. csv tables, figures, etc). 
+
+In this exercise we are using several reserves, but can be easily modified for a single reserve, maintaining the same structure. Use the tab bottom (right top of this screen) to get to a particular section of interest, however, some sections depends on previous sections.
+
+#### note:
+
+This is a work in progress if you want to contribute or find any issues please let us know.
+
+Please give  credit to Lain E. Pardo, Snapshot Safari or WildEco Lab at Nelson Mandela University. We are open to collaborations.
+
+### Load packages
+
+
+
+```{r, packages, results='hide', warning = FALSE}
+library(ggplot2)  
+library(hrbrthemes)
+library(tidyverse)
+
+```
+
+### load file
+
+```{r, results='hide'}
+sp_rec <- read_csv("data_in/+sp_records_only_mammals_updated_temp.csv")
+```
+
+## How many sites, species and records per reserves 
+
+```{r}
+unique(sp_rec$Common.Name)
+unique(sp_rec$Camera.Site)
+
+data_gral <- sp_rec %>% 
+  group_by(Reserve.Location) %>% 
+  summarise(sites = n_distinct(Camera.Site),
+            No_spp = n_distinct(Common.Name), 
+            events = n())
+data_gral 
+#write.csv(data_gral, "data_out/gral_sites_spp.csv")
+
+```
+
+
+# Plot species records/events 
+
+```{r}
+
+sp_allsites <- sp_rec %>% 
+  group_by(Common.Name) %>% 
+  summarise (events = n())
+#write.csv(sp_allsites , "data_out/sp_list_events.csv")
+
+#library(forcats)
+
+sp_allsites %>%
+  mutate(Common.Name = fct_reorder(Common.Name, desc(events))) %>%
+  ggplot(aes(x = Common.Name, y = events))  +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x  = element_text(angle = 90,hjust = 1, vjust = 0.5),
+        text = element_text(size=8))+ #working
+  ggtitle("Independent events per spp (no std)")
+
+#ggsave("figures/events_per_sp.jpeg") 
+
+```
+
+# Plot species richness per reserve 
+
+```{r}
+sp_res <- data_gral %>%
+  mutate(Reserve.Location = fct_reorder(Reserve.Location, desc(No_spp))) %>%
+  ggplot(aes(x = Reserve.Location, y = No_spp))  +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x  = element_text(angle = 90,hjust = 1, vjust = 0.5),
+        text = element_text(size=8))+ #working
+  ggtitle("Number of observed species per reserve")
+
+sp_res
+#ggsave("figures/sp_per_reserve.jpeg") 
+
+```
+
+## Events per specie per reserve 
+Make sure you are using independent records, if not interpret accordingly. Also note that this is not taking into account effort (see 1_SNAPSHOT_source_functions.R)
+
+```{r}
+sp_event <- plyr::ddply(sp_rec, c("Common.Name", "Reserve.Location"), summarise, 
+                 events = n()) 
+#plot it
+
+sp_res_ev <- sp_event %>%
+  mutate(Reserve.Location = fct_reorder(Reserve.Location, desc(events))) %>%
+  ggplot(aes(x = Reserve.Location, y = events))  +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x  = element_text(angle = 90,hjust = 1, vjust = 0.5),
+        text = element_text(size=3)) + 
+  facet_wrap("Common.Name", scales = "free") +
+  ggtitle("Number events per species per reserve")
+sp_res_ev
+#ggsave("figures/events_per_sp_per_res.jpeg") 
+
+```
+
+## Try to separate it into different plots for visualization purposes
+
+```{r}
+library(ggforce)
+class(sp_event$Common.Name)
+sp_event$Common.Name <- as.factor(sp_event$Common.Name)
+
+sp_res_ev2 <- sp_event %>%
+  mutate(Reserve.Location = fct_reorder(Reserve.Location, desc(events))) %>%
+  ggplot(aes(x = Reserve.Location, y = events))  +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x  = element_text(angle = 90,hjust = 1, vjust = 0.5),
+        text = element_text(size=6)) + 
+  facet_wrap_paginate("Common.Name", ncol = 5, nrow = 5, page = 1, scales = "free") +
+  ggtitle("Number events per species per reserve") #with this method I will need to copy and add "page = 2 for the other page and so on
+sp_res_ev2
+#ggsave("figures/events_per_sp_per_res_p1.jpeg")
+
+#second page
+sp_res_ev3 <- sp_event %>%
+  mutate(Reserve.Location = fct_reorder(Reserve.Location, desc(events))) %>%
+  ggplot(aes(x = Reserve.Location, y = events))  +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x  = element_text(angle = 90,hjust = 1, vjust = 0.5),
+        text = element_text(size=6)) + 
+  facet_wrap_paginate("Common.Name", ncol = 5, nrow = 5, page = 2, scales = "free") +
+  ggtitle("Number events per species per reserve")
+sp_res_ev3
+#ggsave("figures/events_per_sp_per_res_p2.jpeg")
+
+#3th page
+sp_res_ev4 <- sp_event %>%
+  mutate(Reserve.Location = fct_reorder(Reserve.Location, desc(events))) %>%
+  ggplot(aes(x = Reserve.Location, y = events))  +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x  = element_text(angle = 90,hjust = 1, vjust = 0.5),
+        text = element_text(size=6)) + 
+  facet_wrap_paginate("Common.Name", ncol = 5, nrow = 5, page = 3, scales = "free") +
+  ggtitle("Number events per species per reserve")
+sp_res_ev4
+#ggsave("figures/events_per_sp_per_res_p3.jpeg") 
+
+#page 4 not working,..had to set col=3 and nrow=1 and page 26 for the three species left
+
+#four page
+#par(mfrow = c(3, 1))
+sp_res_ev5 <- sp_event %>%
+  mutate(Reserve.Location = fct_reorder(Reserve.Location, desc(events))) %>%
+  ggplot(aes(x = Reserve.Location, y = events))  +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x  = element_text(angle = 90,hjust = 1, vjust = 0.5),
+        text = element_text(size=6)) + 
+  facet_wrap_paginate("Common.Name", ncol = 3, nrow = 1, page = 26, scales = "free") +
+  ggtitle("Number events per species per reserve")
+sp_res_ev5
+#
+```
+
+this plot is fine but a bit bulky lets try another representation
+
+
+# Species vs reserve events matrix 
+
+if you have camera sites instead, just change Reserve.Location for your camera site
+
+```{r}
+det_tab <- tapply(sp_event$Common.Name,
+                  list(sp_event$Common.Name,sp_event$Reserve.Location),
+                  length) #give us only the presence
+det_tab <- tapply(sp_rec$Common.Name,
+                  list(sp_rec$Common.Name,sp_rec$Reserve.Location),
+                  length)   
+write.csv(det_tab, "data_out/sp_events_matrix.csv")
+  
+
+library(plot.matrix)
+par(mar=c(4,8,1,5))
+plot(log(det_tab[order(apply(det_tab,1,max,na.rm=T),decreasing = TRUE),]), 
+     col = viridis::viridis(30,option = "D"),
+     axis.row = list(side=2, las=1, cex.axis=0.7), ylab="", main="") 
+```
+
+base plot, not supernice, let´s try ggplot better
+
+# ggplot heat map for events per species
+
+we can get a quick similarity matrix to see general patterns
+
+```{r}
+#first change NA to zeros
+det_tab[is.na(det_tab)] <- 0
+
+# heatmap with similarity index 
+
+heatm <-heatmap(det_tab) #this includes a , just confirm if values are scaled then... 
+#seems to work only with matrix
+
+#ggsave("figures/heat_map_simil.jpeg") #page 4 not working,..try later...***
+
+```
+but it is probably clearer to use another heatmap
+
+```{r}
+
+det_tab.df <- as.data.frame(det_tab)
+det_tab.df <- tibble::rownames_to_column(det_tab.df, "Species")
+
+
+library(hrbrthemes)
+library(viridis)
+
+temp <- det_tab.df %>%
+  pivot_longer(!Species, names_to = "Reserve", values_to = "events")
+range(temp$events)
+
+## put correct format
+det_tab.df %>%
+  
+  pivot_longer(!Species, names_to = "Reserve", values_to = "events") %>% 
+  
+  # create a new variable from count to discretized the events, otherwise the colours are meaningless
+  
+mutate(countfactor=cut(events,breaks=c(0,20,30,40,50, 150,300,450,600,750,900, max(events,na.rm=T)),
+labels=c("0-20", "21-30","31-40","41-50","51-150","151-300","301-450","451-600","602-750",
+         "750-900",">901"))) %>%
+  
+  # Viz
+  ggplot(aes(Reserve, Species, fill = countfactor)) + #, color = terrain.colors(nrow(.))) + 
+  geom_tile() +
+  #theme(legend.position="none") +
+  scale_fill_viridis(discrete=TRUE) +
+  #scale_fill_gradientn(low="white", high="blue") +
+  #scale_fill_distiller(palette = "BrBg") +
+  theme_ipsum() +
+  theme(axis.text.x  = element_text(angle = 90,hjust = 1, vjust = 0.5, size=8),
+        axis.text.y  = element_text(size=5),
+        text = element_text(size=2),
+        legend.text=element_text(size=7,face="bold")) 
+
+#ggsave("figures/heat_map_cats_events.jpeg") #
+
+```
+
+# Survey lenght 
+
+```{r}
+#change the date format, we need yyyy-mm-dd 
+
+sp_rec$Photo.Date <- lubridate::parse_date_time(x = sp_rec$Photo.Date,
+                                                       order = c("dmY", "Ymd","dmy"))
+
+
+survey_lenght <- plyr::ddply(sp_rec, c("Reserve.Location", "Camera.Site"), # 
+                          summarise,  
+                          First.Photo.Date = min(as.Date(Photo.Date)),
+                          Last.Photo.Date = max(as.Date(Photo.Date)),
+                          Cam.Days = Last.Photo.Date-First.Photo.Date)  
+head(survey_lenght)
+
+#write.csv(survey_lenght,"data_out/survey_lenght_all_updated_.csv")
+```
+
+
+## Plot survey lenght
+
+### Approach one: from survey lenght
+
+```{r}
+surv_1 <- survey_lenght %>% 
+        ggplot() +
+        geom_segment(aes(x= First.Photo.Date, xend = Last.Photo.Date, 
+                   y = Camera.Site, yend = Camera.Site ))
+surv_1
+#way too many sites, difficult to see in one chart, but you can customize this
+# each of the "groups" represent cameras within a reserve, we can see they were surveyed at 
+# different times
+```
+
+### Approach two: from the species records
+
+```{r}
+
+head(sp_rec)
+sp_rec$DateTimeOriginal1
+
+sp_rec$DateTimeOriginal <- as.POSIXct(sp_rec$DateTimeOriginal, format = "%d/%m/%Y %k:%M") # transform character to POSIXct = date-time
+ 
+sp_rec %>%  ggplot() + 
+  geom_point(aes(x = DateTimeOriginal, y = Camera.Site,
+                                     col = Common.Name),
+                                   alpha = 0.5, show.legend = FALSE) +
+    scale_x_datetime(date_labels = "%d %b %y", # you can also use other date formatting codes (here I chose %d (day digits) %b (month abbreviation) and %y (year 2 last digits))
+                 date_minor_breaks = "1 week", # you can also choose to change breaks to eg "1 week"
+                 date_breaks = "2 months") +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+    xlab("Date") + ylab("Camera")
+
+#ggsave("figures/survey_effort_all_points.jpeg")
+#a lot of points too but better to see each point (species) and potential gaps
+# if you want to put this figures into a report, then tidy it up
+
+```
+
+# Spatial splicit visualizations
+
+we now want to use other covariates from other files, such as the latitute and longitute, or scientific name, as we want to do some spatial explicit maps
+see source functions to see how to include scientific names into the species records
+
+## Load species traits files 
+
+this contains the scientific name
+
+```{r}
+traits <- read_csv("data_in/+traits_in_sp_records_updated.csv")
+```
+
+## Check that the names in spp records match sp traits 
+
+show all unique entries of the scientific names in spp records that are not in traits 
+
+```{r}
+unique(sp_rec$Scientific.Name)[!unique(sp_rec$Scientific.Name) %in% traits$Scientific.Name]
+```
+
+```{r}
+unique(traits$Scientific.Name)
+```
+
+show all unique entries of the snapshot names in spp records that are not in traits 
+
+```{r}
+unique(sp_rec$Common.Name)[!unique(sp_rec$Common.Name) %in% traits$Snapshot.Name]
+
+```
+
+now with covariates file
+
+## Load covariates 
+
+```{r}
+
+covars <- read_csv("data_in/+covariates_sites_fin_updated.csv")
+```
+
+```{r}
+
+# show all unique sites in spp records that are not covariates
+
+unique(sp_rec$Camera.Site)[!unique(sp_rec$Camera.Site) %in% covars$Camera.Site]
+```
+
+```{r}
+# show all unique sites in covariates that are not in sp records
+unique(covars$Camera.Site)[!unique(covars$Camera.Site) %in% sp_rec$Camera.Site]
+
+```
+
+##  Plot lat/long of species richness per site -----------------------
+
+```{r}
+sp_lat <- sp_rec %>% 
+  group_by(Camera.Site) %>% 
+  summarise(No_spp = n_distinct(Common.Name), 
+            events = n())
+sp_lat
+
+#add lat long to data_lat
+lat_long <- covars[, c(3, 7:8)]
+
+join <- left_join(sp_lat, lat_long, by = "Camera.Site")
+
+#now plot
+e <-ggplot(join, aes(Long_X, Lat_Y)) +
+  geom_point(aes(size=No_spp, colour=No_spp),alpha=1) +
+  scale_size_area() +
+  ylab("Longitude") +
+  xlab("Latitute") +
+  guides(color= guide_legend("Species #"), size= guide_legend("Species #")) +
+  scale_color_gradient(low = "skyblue", high = "blue")
+e
+#not very informative, as cams overlap, would need to split each reserve, not necesary right now...
+#save this to add sites, number sp and number of events to covariates file exploration
+#but use this to paste it to covars so we can explore responses of richness and events per site
+#that´s done in 3.explo_covars
+
+#firt delet lat/long  in join to not repeat it
+join <- join[,c(1:3)]
+join_cov <- left_join(covars, join, by = "Camera.Site")
+
+#save
+#write.csv(join_cov , "data_out/covars_with_richness_events.csv")
+```
+
+
+# Spatial richness per reserve
+
+plot reserve level variable and a single camera coordinate
+
+```{r}
+lat_long2 <- covars[, c(2, 7:8)]
+
+lat_long3 <- lat_long2 %>% 
+  group_by(Reserve.Location) %>% 
+  summarise(lat = Lat_Y[1], 
+            long = Long_X[1])
+
+join2 <- left_join(lat_long3, data_gral, by = "Reserve.Location")
+
+write.csv(join2, "data_out/rich_reserve_lat_long.csv")
+
+(f <-ggplot(join2, aes(long, lat)) + #try adding label = No_spp, but no geom_text
+  geom_point(aes(size=No_spp, colour=No_spp),alpha=1) +
+  geom_text(aes(label=Reserve.Location),hjust= -0.25, size = 2.5) + #try geom_text_repel() library(ggrepel)
+  scale_size_area() +
+  ylab("Longitude") +
+  xlab("Latitute") +
+  guides(color= guide_legend("Species #"), size= guide_legend("Species #")) +
+  scale_color_gradient(low = "skyblue", high = "blue"))
+
+#ggsave("figures/sp_lat_long.jpeg") #
+
+```
+## Boxplot sp richness per reserve
+
+```{r}
+
+join_cov %>%
+  ggplot(aes(x= reorder(Reserve.Location, No_spp), y = No_spp, fill=Reserve.Location)) +
+  geom_boxplot() +
+  geom_jitter(color="black", size=0.2, alpha=0.5)+
+  theme(legend.position = "none") +
+  scale_color_viridis(discrete=TRUE) +
+  labs(x = "Reserves", y = "Species richness")
+
+```
+
+## Put terrain map in the background
+
+# Load libraries
+```{r}
+library(rgdal)
+library(ggmap)
+library(raster)
+library(hrbrthemes)
+library(ggrepel)
+```
+
+#Definitions:
+
+cf is the csv camera file for the site X
+cf_geo is the Spatial Points Data Frame in WGS84 of cf
+The used background doesn't need any API and comes from Stamen map, type=terrain
+The loading can take few minutes. It is normal
+cameras object represents the georeferenced cameras points
+
+```{r}
+
+join2 <- read.csv("data_out/rich_reserve_lat_long.csv")
+
+head(join2)
+
+
+#Data loading (cf) and geospatialisation of the camera file (cf_geo)
+
+cf <- join2
+cf_geo <- join2
+
+#Georeferencing of cf (Can be useful for other uses)
+
+cf_geo$long <- as.numeric(cf_geo$long)
+cf_geo$lat <- as.numeric(cf_geo$lat)
+
+coordinates(cf_geo) <- ~ long + lat
+
+proj4string(cf_geo) <- CRS("+proj=longlat +datum=WGS84")
+
+#Background + ggplot = ggmap
+
+#Extent
+
+#The extent has to be manually set up considering the area by modulating the + and - values
+
+left <- xmin(cf_geo)-0.6
+right <- xmax(cf_geo)+0.8
+bottom <- ymin(cf_geo)-0.4
+top <- ymax(cf_geo)+0.4
+
+#Basemap loading
+#these are just different options of maps, let´s use only one
+
+#basemap1 <- get_stamenmap(bbox= c(left=left,right=right,bottom=bottom,top=top),
+#                                zoom=6, maptype = "terrain", crop=T, force=T,
+#             style = feature:administrative.country|element:labels.text|visibility:off)
+#
+#basemap2 <- get_stamenmap(bbox= c(left=left,right=right,bottom=bottom,top=top),
+#                          zoom=6, maptype = "terrain", crop=T, force=T,
+#                          style featureType:administrative.country|elementType:labels.text|visibility:off)
+
+basemap5 <- get_stamenmap(bbox= c(left=left,right=right,bottom=bottom,top=top),
+                          zoom=6, maptype = "terrain", crop=T, force=T,
+                          style=c(feature="administrative.country",element="labels",
+                                  visibility="off"))
+
+ggmap(basemap5, legend = "topleft") +
+  geom_point(aes(x = long, y = lat, colour = No_spp, size = No_spp),data = cf, alpha = 1,) +
+  geom_text_repel(aes(x =long, y =lat,label = Reserve.Location), hjust= -0.25, size = 3,
+                  fontface = 'bold', color = 'black',  data = cf) + #try geom_text_repel() library(ggrepel)
+  scale_size_area() +
+  ylab("Longitude") +
+  xlab("Latitute") +
+  guides(color= guide_legend("Species #"), size= guide_legend("Species #")) +
+  #scale_color_gradient(low = "skyblue", high = "blue") +
+  scale_color_gradient(low = "blue", high = "red") +
+  #scale_color_distiller(palette = "YlOrRd", direction = 1) +
+  theme_bw()
+#ggsave("figures/sp_map_terrain.jpeg") #
+
+```
+
+
+# End--
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

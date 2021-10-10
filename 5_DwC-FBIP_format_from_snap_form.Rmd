@@ -1,0 +1,290 @@
+---
+title: "Script to convert Snapshot records to Darwin Core (DwC) Format for FBIP"
+author: "Lain E. Pardo"
+date: "6/6/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This code converts an original Snapshot report to the Darwin Core (DwC) format used widely for biodiversity records and by FBIP in South Africa. Here we are including ALL columns from original reports as extra information.
+
+We need three files that must be uploaded in order to retrieve the information (see below). These files must be in the same folder for the function to run and the object name should not change. Note that a few FBIP column names might not match correctly the DwC columns codes, so a further processing might be needed when submitting the records to the Catalogue of Life.
+
+files:   
+1. sp_rec: the final report we amended to be converted into the DwC format (FBIP), (No        independence between records is considered 
+2. metadata: this is the file with all metadata for all sites, we can use the                 "1_Metadata_all_fixed_as_snapshot_TEMP_CSV.csv"
+3. traits: we need some taxonomic information from species so we can use the traits file      "+traits_in_sp_records_updated")
+
+*elevation, province and other metadata were retrieved in previous process (see scripts, and readme of metadata for source)
+
+## call libraries
+```{r, message=FALSE, warning=FALSE}
+library(readr)
+library(tidyverse)
+```
+
+## load files
+
+```{r, warning= FALSE, message= FALSE}
+
+        
+sp_rec <- read_csv("data_in/MTZ_S1_full_report_0-50%_agreement_corrected_fin.csv") 
+
+metadata <- read_csv("data_in/1_Metadata_all_fixed_as_snapshot_TEMP_CSV.csv")
+
+traits <- read_csv("data_in/+traits_in_sp_records_updated.csv")
+
+
+```
+
+Most likely your files are in our repositories or other folders in your PC, in this case use you need to set your path, so use the below sample code:
+
+```{r, eval = FALSE }
+#knitr::opts_knit$set(root.dir = "C:/Users/admin/Dropbox/Postdoc_NMU/snapshot #safari/reports_Jan")  #set up another working dir
+# don´t forget to delete eval if using this chunk
+```
+
+```{r, eval = FALSE, warning= FALSE, message= FALSE}
+## load files
+
+# path_sp <- "C:/Users/admin/Dropbox/Postdoc_NMU/snapshot safari/data_available_survey_docs/Spp_reports_amended_50%_agreement/1_last_amend_jan/"
+# rep <- "MTZ/MTZ_S2_full_report_0-50%_agreement_corrected_JV.csv"
+#            
+# sp_rec <- read.csv(paste0(path_sp, rep)) #, head = TRUE, sep=";") # modify accordingly
+# 
+# metadata <- read_csv("data_in/1_Metadata_all_fixed_as_snapshot_TEMP_CSV.csv")
+# 
+# traits <- read_csv("data_in/+traits_in_sp_records_updated.csv")
+# 
+# don´t forget to delete eval if using this chunk
+```
+
+
+since we are  working from a "non-clean" report I have to do some data-prep before the actual function for DwC format (this is not an issue if working from clean independent reports)
+
+## Data preparation
+be mindful that this code eliminates birds and false triggers, if birds are need set FALSE the rm_bycatch argument (but probably some things won´t work e.g. scientific names). See other scripts in this repo
+
+```{r}
+source("1_SNAPSHOT_source_functions.R")
+
+reps1 <- cols_snap_std(sp_rec) 
+
+# 1_ standardize names of species
+
+df <- standardise_names(reps1)
+unique(df$question__species)
+
+# 2_ Clean table (rename species, cast column types)
+reps2 <- df %>% mutate(DateTimeOriginal = paste(capture_date_local, capture_time_local))
+
+#----------
+
+df.clean <- clean_table(reps2, rm_bycatch = TRUE, pres_abs = FALSE)
+
+
+#df.clean_NO_BYCATCH <- clean_table(df, rm_bycatch = TRUE, pres_abs = FALSE)
+unique(df.clean$question__species)
+
+sp_rec <- df.clean
+
+```
+
+
+-------------
+Check carefully the strings, values and class of your variables. For example, I had to run this for kgalagadiS2-S4 as site name does include the three letters code already!! so messing the code...
+
+I have separated KHO and KGA into different files (same for DHP,OVE)
+```{r}
+#sp_rec$site <- gsub("KHO", "", as.character(sp_rec$site))
+```
+-------------
+
+also there could be some discrepancies between names, some reports would have for example generic names for some specie e.g. zebra instead of zebraburchells, zebramountain, etc.
+
+
+1. if we are sure all species are one or the other do:
+
+```{r}
+
+#AUG
+#unique(sp_rec$question_question__species)
+#class(sp_rec$question_question__species)
+#sp_rec$question__species <- as.character(sp_rec$question__species)
+#change as 
+#sp_rec$question__species[sp_rec$question__species == "zebra"] <- "zebraburchells"
+#unique(sp_rec$question__species)
+#g <- filter(sp_rec, question__species ==  "genet(rusty)") 
+```
+
+2. if we don´t know then leave it but we will need to add a name in the traits doc to retrieve it only that it won´t have scientific name! so do it from file add "nn" in scientifc name
+
+```{r}
+```
+
+
+# now the function for DwC:
+
+```{r}
+# from species records we need:
+# 1. add the same value of Photo.ID to new col "Catalogue Number", "Record Number" "Record Number
+# 2. add the same values of "Number.of.Individuals" to new col "Individual Count"
+# 4. add same value of "Photo.Date" into new col "Date Identified"
+# 3. split photo.date into 3 cols: "Year", Month, Day
+# 6. add new cols with the same value for all sp records: 
+
+DarwinCore <- function(sp_rec, metadata, traits){
+sp_rec1 <- sp_rec %>% 
+  mutate("Catalogue Number" = sp_rec$subject_id,
+         "Record Number" = sp_rec$subject_id,
+         "Individual Count" = sp_rec$question__count_median)
+
+
+sp_rec1$capture_date_local <- as.Date(sp_rec1$capture_date_local)
+
+sp_rec2<- sp_rec1 %>% 
+  mutate("Date Identified" = capture_date_local,
+         "Institution ID" = "Nelson Mandela University",
+         "Basis of Record" = "Camera-Trap photo",
+         "Recorded By" = "Snapshot Safari SA & Wildlife Ecology Lab",
+         "Preparations" = "Photo-digital",
+         "geodetic Datum" = "WGS84",
+         "IdentifiedBy" = "Snapshot Safari SA & Wildlife Ecology Lab",
+         "Sampling Protocol" = "Camera-Trapping") %>% 
+   separate("Date Identified", c("Year", "Month", "Day"), sep = "-", remove = FALSE)
+
+# 4_ need standard name for sites including col "site" and "season"
+
+df1 <- separate(sp_rec2,season, c("code_loc", "season1"), sep = "_", remove =FALSE)  
+
+
+#  back to main function
+sp_rec2 <-unite(df1, Camera.Site, code_loc, site, sep = "_",remove =FALSE) #
+
+unique(sp_rec2$Camera.Site)
+
+# from metadata I need to:--------------------
+
+# 5. take RSA-vegetation to habitat in (into above df), use site id for this I guess
+# 6. take cols country, province, municipality and elevation, as they are into each spp above
+# 7. take official name and use it in new col named "Locality"
+# 8. take the coordinates and put them as a new cols "Decimal Latitude", "Decimal Longitude"
+ 
+#so let´s select variables:
+#insert col with reserve code
+
+vars_need <- select(metadata,5,9,10,22, 47:53)
+
+vars_need1 <- vars_need %>% rename(          
+  Camera.Site = Camera.Site.Concatenate,
+  Locality = Official.Name,
+  "Decimal Latitude" = Lat_Y,
+  "Decimal Longitude" = Long_X,
+  Habitat = Vegetation,
+  "Field Notes" = Habitat.Descriptor)
+unique(vars_need1$Camera.Site)
+#let´s make a left join 
+
+sp_rec3 <- left_join(sp_rec2, vars_need1, by = "Camera.Site") #working
+#names(sp_rec2)
+#names(vars_need1)
+
+
+# now add traits columns --------------------------------------------------
+
+#select those needed
+
+traits1<- select(traits, 4,5,6,7:9)
+
+
+#use traits to filter sp3 to get only mammals
+
+#add new cols
+traits2<- traits1 %>% 
+  mutate(Kingdom = "Animalia",
+         Phylum = "Chordata",
+         Class = "Mammalia Linnaeus, 1758",
+         "Vernacular Name" = Common.Name) %>%  # of traits not sp_rec
+  rename("Scientific Name Authorship" = Scientific.Name.Authorship) %>% 
+  unite("full Scientific Name+author details", Scientific.Name, "Scientific Name Authorship", sep = ", ", remove =FALSE) %>% 
+  separate(Scientific.Name, c("Genus", "Species", "Infraspecific Epithet"), sep = "[^[:alnum:]]+", remove = FALSE)
+ 
+#in sp_rec3 change Common.Name for Snapshot.Name to join
+#better repeat the column otherwise this name is lost and we want it in the end...
+sp_rec3$Snapshot.Name <- sp_rec3$question__species
+#sp_rec3 <- rename(sp_rec3, Snapshot.Name = question__species)
+
+#join by snapshot name  (filter mammals at the end?)
+
+sp_rec4 <- left_join(sp_rec3, traits2, by = "Snapshot.Name") #working
+
+
+# put together a final df with final cols --------------------------------
+
+
+# --- Create an empty dataframe with the columns we need
+# The columns needed
+cols <- c("Institution ID",	"Collection ID",	"Dataset ID",	"Basis of Record",	"Catalogue Number",
+          "Occurrence Remarks",	"Record Number",	"Recorded By",	"Individual ID",	"Individual Count",
+          "Life Stage",	"Reproductive Condition",	"Establishment Means",	"Preparations",	"Disposition",
+          "Associated Reference",	"Associated Sequences",	"Sampling Protocol",	"Sampling Effort",	"Year",
+          "Month",	"Day",	"Habitat",	"Field Number",	"Field Notes","Country",	"Province",	"Municipality", "Locality",	"Elevation",	"Location According To",	"Location Remarks",	"Decimal Latitude",	"Decimal Longitude","geodetic Datum",	"Co-ordinate Uncertainty in Meters","IdentifiedBy",	"Date Identified",
+          "Identification references",	"Identification Remarks","Identification Qualifier","Type Status",
+          "Name according to Id",	"full Scientific Name+author details",	"Kingdom",	"Phylum",	"Class","Order", "Family",	"Genus",	"Species",	"Infraspecific Epithet",	"Scientific Name Authorship",
+          "Vernacular Name",	"Taxon Rank",	"Nomenclatural Status",	"Taxon Remarks", "Camera.Site",
+          #let´s add all cols from reports as extra info too
+          names(unique(sp_rec)))
+                #"season", "roll",
+        #  "zooniverse_url_0", "zooniverse_url_1", "zooniverse_url_2", "Camera.Site", )
+
+ncol <- length(cols) # number of columns
+
+# --- Create columns that don't exist 
+# Helper function to add columns that are not in the original data
+
+fncols <- function(data, cname) {
+  # data = the dataframe to modify
+  # cname = column names (character vector or character)
+  res <- data
+  add <- cname[!cname %in% names(data)]
+  
+  if(length(add)!=0){
+    res[add] <- NA
+  } 
+  return(res)
+}
+
+#run the function
+df_res <- fncols(sp_rec4, cols) 
+
+# --- Reorder and delete cols not needed
+df_fin <- df_res %>% select(all_of(cols)) # reorder in the same order as cols used before
+
+#delete NA for vernacular name (those must be birds and others not mammals)
+
+df_fin1 <- df_fin %>% 
+  filter(!is.na(`Vernacular Name`))
+
+locality <- df_fin$Locality[1]
+myfile <- file.path("data_out", paste0(locality, "_FBIP_Form.csv")) #change if needed
+write.csv(df_fin1, file = myfile) 
+return(df_fin1)
+}
+
+```
+
+## so, now  let´s run above function
+should create a file with the name of the location
+
+```{r}
+repDwC <- DarwinCore(sp_rec,metadata,traits) #should create a file with the name of the location, error is not an issue consider a warning...
+#6008-5972 = 36, minus 36 (bycatch) = 0!! now finally this shit isworking, NO missing recs
+```
+
+note. don´t forget to double check if results make sense, and species or rows are not lost in the process. 
+
+# END-------------
+
