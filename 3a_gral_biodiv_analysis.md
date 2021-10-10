@@ -447,12 +447,12 @@ unique(df2$site_ID)
 scient_name <- read_csv("data_in/+traits_in_sp_records_updated.csv")
 ```
 
-    ## Rows: 91 Columns: 14
+    ## Rows: 100 Columns: 24
 
     ## -- Column specification --------------------------------------------------------
     ## Delimiter: ","
-    ## chr (12): Scien.Code, Comm.Code, Snapshot.Name, Common.Name, Scientific.Name...
-    ## dbl  (2): id, Mass.kg
+    ## chr (17): Scien.Code, Comm.Code, Snapshot.Name, Common.Name, Scientific.Name...
+    ## dbl  (7): #ID, Weight.Kg, W.Male, W.female, Activity.Cycle, Terrestriality, ...
 
     ## 
     ## i Use `spec()` to retrieve the full column specification for this data.
@@ -705,22 +705,22 @@ spp_rec <- final.df
 str(spp_rec)
 ```
 
-    ## tibble [1,986 x 15] (S3: tbl_df/tbl/data.frame)
-    ##  $ Reserve.Location     : chr [1:1986] "MTZ" "MTZ" "MTZ" "MTZ" ...
+    ## tibble [1,983 x 15] (S3: tbl_df/tbl/data.frame)
+    ##  $ Reserve.Location     : chr [1:1983] "MTZ" "MTZ" "MTZ" "MTZ" ...
     ##  $ Camera.Site          : Factor w/ 19 levels "MTZ_B04","MTZ_B05",..: 1 1 1 1 1 1 1 1 1 1 ...
     ##  $ Common.Name          : Factor w/ 41 levels "aardvarkantbear",..: 41 29 29 41 24 24 29 3 24 41 ...
-    ##  $ Scientific.Name      : chr [1:1986] "Equus zebra" NA NA "Equus zebra" ...
-    ##  $ Photo.Date           : POSIXct[1:1986], format: "2017-08-23 19:00:00" "2017-08-26 19:00:00" ...
-    ##  $ Photo.Time           : chr [1:1986] "12:18:04" "15:17:05" "16:24:15" "18:04:31" ...
-    ##  $ Number.of.Individuals: num [1:1986] 1 1 1 3 1 1 2 2 1 3 ...
-    ##  $ Photo.ID             : num [1:1986] 31547018 30785302 30119622 30782166 32731999 ...
-    ##  $ Season               : chr [1:1986] "S1" "S1" "S1" "S1" ...
-    ##  $ Roll                 : num [1:1986] 1 1 1 1 1 1 1 1 1 1 ...
-    ##  $ Zooniverse.Url.1     : chr [1:1986] "https://panoptes-uploads.zooniverse.org/production/subject_location/efd7b1d6-5dbd-4729-92a1-45d4cfaf2caf.jpeg" "https://panoptes-uploads.zooniverse.org/production/subject_location/ac9468de-6b08-40a2-ad5c-a41327f1e30a.jpeg" "https://panoptes-uploads.zooniverse.org/production/subject_location/a8cdf34a-74be-4084-b30a-743954f93ee7.jpeg" "https://panoptes-uploads.zooniverse.org/production/subject_location/a888f549-b8bf-41b2-b4be-3ad5ee097029.jpeg" ...
-    ##  $ Zooniverse.Url.2     : chr [1:1986] NA NA NA NA ...
-    ##  $ Zooniverse.Url.3     : chr [1:1986] NA NA NA NA ...
-    ##  $ Consensus            : num [1:1986] 0.78 0.91 1 0.89 1 1 1 0.8 0.6 0.7 ...
-    ##  $ DateTimeOriginal     : POSIXct[1:1986], format: "2017-08-24 12:18:04" "2017-08-27 15:17:05" ...
+    ##  $ Scientific.Name      : chr [1:1983] "Equus zebra" NA NA "Equus zebra" ...
+    ##  $ Photo.Date           : POSIXct[1:1983], format: "2017-08-23 19:00:00" "2017-08-26 19:00:00" ...
+    ##  $ Photo.Time           : chr [1:1983] "12:18:04" "15:17:33" "16:24:15" "18:04:31" ...
+    ##  $ Number.of.Individuals: num [1:1983] 1 1 1 3 1 1 2 2 1 3 ...
+    ##  $ Photo.ID             : num [1:1983] 31547018 31518466 30119622 30782166 32731999 ...
+    ##  $ Season               : chr [1:1983] "S1" "S1" "S1" "S1" ...
+    ##  $ Roll                 : num [1:1983] 1 1 1 1 1 1 1 1 1 1 ...
+    ##  $ Zooniverse.Url.1     : chr [1:1983] "https://panoptes-uploads.zooniverse.org/production/subject_location/efd7b1d6-5dbd-4729-92a1-45d4cfaf2caf.jpeg" "https://panoptes-uploads.zooniverse.org/production/subject_location/1ce6adb4-ef74-4ae3-9e90-ee7b4c2670c5.jpeg" "https://panoptes-uploads.zooniverse.org/production/subject_location/a8cdf34a-74be-4084-b30a-743954f93ee7.jpeg" "https://panoptes-uploads.zooniverse.org/production/subject_location/a888f549-b8bf-41b2-b4be-3ad5ee097029.jpeg" ...
+    ##  $ Zooniverse.Url.2     : chr [1:1983] NA NA NA NA ...
+    ##  $ Zooniverse.Url.3     : chr [1:1983] NA NA NA NA ...
+    ##  $ Consensus            : num [1:1983] 0.78 0.88 1 0.89 1 1 1 0.8 0.6 0.7 ...
+    ##  $ DateTimeOriginal     : POSIXct[1:1983], format: "2017-08-24 12:18:04" "2017-08-27 15:17:33" ...
 
 ``` r
 class(spp_rec$Photo.Date)
@@ -832,9 +832,9 @@ table(spp_rec$Camera.Site)
 
     ## 
     ## MTZ_B04 MTZ_B05 MTZ_B08 MTZ_C04 MTZ_C06 MTZ_C07 MTZ_C08 MTZ_D03 MTZ_D04 MTZ_D05 
-    ##     209     179       4      15     126      53     100      30     145      17 
+    ##     210     178       4      15     126      53     100      30     145      17 
     ## MTZ_D06 MTZ_D07 MTZ_E03 MTZ_E04 MTZ_E05 MTZ_E06 MTZ_F04 MTZ_F05 MTZ_G04 
-    ##      52     102      55     164     145     122     168      26     120
+    ##      51     102      55     162     145     122     168      26     120
 
 ``` r
 # getting last picture date for all sites as end date of survey, if this is not the case,  change
@@ -1176,7 +1176,7 @@ survey_rep <- surveyReport(recordTable = spp_rec,
     ## recordTable was converted from tibble to data.frame
 
     ## saved output to file 
-    ## data_out/survey_report_2021-10-08.txt
+    ## data_out/survey_report_2021-10-10.txt
 
 Be careful, values in CTtable vs recordTable (stationcol) should match
 if there are problems you can try:
@@ -2298,16 +2298,16 @@ springbok
 3732
 </td>
 <td style="text-align:right;">
-148
+147
 </td>
 <td style="text-align:right;">
-3.97
+3.94
 </td>
 <td style="text-align:right;">
-3.27
+3.25
 </td>
 <td style="text-align:right;">
-5.81
+5.75
 </td>
 <td style="text-align:right;">
 9
@@ -2414,16 +2414,16 @@ zebramountain
 3732
 </td>
 <td style="text-align:right;">
-420
+418
 </td>
 <td style="text-align:right;">
-11.25
+11.20
 </td>
 <td style="text-align:right;">
-12.26
+12.15
 </td>
 <td style="text-align:right;">
-11.22
+11.11
 </td>
 <td style="text-align:right;">
 17
@@ -3134,7 +3134,7 @@ table.2
     ## 30             314             314         1                steenbok        0
     ## 31             314             314         1                 warthog        0
     ## 32             314             314         1         wildebeestblack        0
-    ## 33             314             314         1           zebramountain      125
+    ## 33             314             314         1           zebramountain      126
     ## 34             244             244         1         aardvarkantbear        0
     ## 35             244             244         1                aardwolf        0
     ## 36             244             244         1                  baboon        0
@@ -3163,7 +3163,7 @@ table.2
     ## 59             244             244         1        reedbuckmountain        0
     ## 60             244             244         1              rhebokgrey        0
     ## 61             244             244         1         rhinocerosblack        0
-    ## 62             244             244         1               springbok       48
+    ## 62             244             244         1               springbok       47
     ## 63             244             244         1                steenbok        0
     ## 64             244             244         1                 warthog        0
     ## 65             244             244         1         wildebeestblack       82
@@ -3464,7 +3464,7 @@ table.2
     ## 360             66              66         1                steenbok        0
     ## 361             66              66         1                 warthog        0
     ## 362             66              66         1         wildebeestblack        0
-    ## 363             66              66         1           zebramountain       23
+    ## 363             66              66         1           zebramountain       22
     ## 364            223             223         1         aardvarkantbear        1
     ## 365            223             223         1                aardwolf        0
     ## 366            223             223         1                  baboon       11
@@ -3563,7 +3563,7 @@ table.2
     ## 459            220             220         1                steenbok        0
     ## 460            220             220         1                 warthog       28
     ## 461            220             220         1         wildebeestblack        0
-    ## 462            220             220         1           zebramountain       21
+    ## 462            220             220         1           zebramountain       19
     ## 463            222             222         1         aardvarkantbear        0
     ## 464            222             222         1                aardwolf        0
     ## 465            222             222         1                  baboon       10
@@ -3762,7 +3762,7 @@ table.2
     ## 30    0.00
     ## 31    0.00
     ## 32    0.00
-    ## 33   39.81
+    ## 33   40.13
     ## 34    0.00
     ## 35    0.00
     ## 36    0.00
@@ -3791,7 +3791,7 @@ table.2
     ## 59    0.00
     ## 60    0.00
     ## 61    0.00
-    ## 62   19.67
+    ## 62   19.26
     ## 63    0.00
     ## 64    0.00
     ## 65   33.61
@@ -4092,7 +4092,7 @@ table.2
     ## 360   0.00
     ## 361   0.00
     ## 362   0.00
-    ## 363  34.85
+    ## 363  33.33
     ## 364   0.45
     ## 365   0.00
     ## 366   4.93
@@ -4191,7 +4191,7 @@ table.2
     ## 459   0.00
     ## 460  12.73
     ## 461   0.00
-    ## 462   9.55
+    ## 462   8.64
     ## 463   0.00
     ## 464   0.00
     ## 465   4.50
@@ -4444,12 +4444,12 @@ write.csv(mergesites2, "data_out/details_indiv_reports/MTZ_RAIalt+coord.csv", ro
 IUCN <- read_csv("data_in/+traits_in_sp_records_updated.csv")
 ```
 
-    ## Rows: 91 Columns: 14
+    ## Rows: 100 Columns: 24
 
     ## -- Column specification --------------------------------------------------------
     ## Delimiter: ","
-    ## chr (12): Scien.Code, Comm.Code, Snapshot.Name, Common.Name, Scientific.Name...
-    ## dbl  (2): id, Mass.kg
+    ## chr (17): Scien.Code, Comm.Code, Snapshot.Name, Common.Name, Scientific.Name...
+    ## dbl  (7): #ID, Weight.Kg, W.Male, W.female, Activity.Cycle, Terrestriality, ...
 
     ## 
     ## i Use `spec()` to retrieve the full column specification for this data.
@@ -4476,24 +4476,28 @@ sel_spp <- IUCN %>%
 sel_spp
 ```
 
-    ## # A tibble: 13 x 14
-    ##       id Scien.Code Comm.Code Snapshot.Name  Common.Name  Scientific.Name Order 
-    ##    <dbl> <chr>      <chr>     <chr>          <chr>        <chr>           <chr> 
-    ##  1    12 FENI       CATB      catblackfooted Cat (Black-~ Felis nigripes  Carni~
-    ##  2    13 ACJU       CHEE      cheetah        Cheetah      Acinonyx jubat~ Carni~
-    ##  3    19 LOAF       ELEA      elephant       Elephant (A~ Loxodonta afri~ Probo~
-    ##  4    30 GICA       GIRA      giraffe        Giraffe      Giraffa camelo~ Artio~
-    ##  5    38 HIAM       HIPO      hippopotamus   Hippopotamus Hippopotamus a~ Artio~
-    ##  6    47 PAPA       LEOP      leopard        Leopard      Panthera pardus Carni~
-    ##  7    48 PALE       LION      lion           Lion         Panthera leo    Carni~
-    ##  8    64 SMTE       PANG      pangolin       Pangolin (G~ Smutsia temmin~ Pholi~
-    ##  9    68 BUMO       RARI      rabbitriverine Rabbit (Riv~ Bunolagus mont~ Lagom~
-    ## 10    70 REFU       REMO      reedbuckmount~ Reedbuck (M~ Redunca fulvor~ Artio~
-    ## 11    72 DIBI       RHBL      rhinocerosbla~ Rhinoceros ~ Diceros bicorn~ Peris~
-    ## 12    84 LYPI       WIDO      wilddog        Wild dog     Lycaon pictus   Carni~
-    ## 13    84 EQZE       ZEBM      zebramountain  Zebra (Moun~ Equus zebra     Peris~
-    ## # ... with 7 more variables: Family <chr>, IUCN.Cat <chr>, Guild.Realm <chr>,
-    ## #   Specif.Guild <chr>, Body.Size.Cat <chr>, Mass.kg <dbl>, Simp.Guild <chr>
+    ## # A tibble: 13 x 24
+    ##    `#ID` Scien.Code Comm.Code Snapshot.Name    Common.Name         Scientific.Name
+    ##    <dbl> <chr>      <chr>     <chr>            <chr>               <chr>          
+    ##  1    12 FENI       CATB      catblackfooted   Cat (Black-Footed)  Felis nigripes 
+    ##  2    13 ACJU       CHEE      cheetah          Cheetah             Acinonyx jubat~
+    ##  3    19 LOAF       ELEA      elephant         Elephant (African)  Loxodonta afri~
+    ##  4    30 GICA       GIRA      giraffe          Giraffe             Giraffa camelo~
+    ##  5    38 HIAM       HIPO      hippopotamus     Hippopotamus        Hippopotamus a~
+    ##  6    47 PAPA       LEOP      leopard          Leopard             Panthera pardus
+    ##  7    48 PALE       LION      lion             Lion                Panthera leo   
+    ##  8    64 SMTE       PANG      pangolin         Pangolin (Ground)   Smutsia temmin~
+    ##  9    68 BUMO       RARI      rabbitriverine   Rabbit (Riverine)   Bunolagus mont~
+    ## 10    70 REFU       REMO      reedbuckmountain Reedbuck (Mountain) Redunca fulvor~
+    ## 11    72 DIBI       RHBL      rhinocerosblack  Rhinoceros (Black)  Diceros bicorn~
+    ## 12    87 LYPI       WIDO      wilddog          Wild dog            Lycaon pictus  
+    ## 13    91 EQZE       ZEBM      zebramountain    Zebra (Mountain)    Equus zebra    
+    ## # ... with 18 more variables: Scientific.Name.Authorship <chr>, Order <chr>,
+    ## #   Family <chr>, IUCN.Cat <chr>, Guild_Realm <chr>, Specif.Guild <chr>,
+    ## #   Body.Size.Cat <chr>, Weight.Kg <dbl>, W.Male <dbl>, W.female <dbl>,
+    ## #   Herd.Size <chr>, Water.Dependance <chr>, Gut.Type <chr>,
+    ## #   Activity.Cycle <dbl>, Terrestriality <dbl>, Habitat.Breadth <dbl>,
+    ## #   Suggested_Similar_Species <chr>, other_reference <chr>
 
 ``` r
 #13 spp are threatened should not be more than that ever in the reserves
