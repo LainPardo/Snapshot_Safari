@@ -1,4 +1,6 @@
 
+![](images/snapshotsafari_gral_logo.png?raw=true)
+
 # Snapshot_Safari Readme:
 
 In this repository, you will find different useful protocols and functions to analyze camera trap data from the Snapshot Safari Project.
@@ -84,4 +86,4 @@ We look forward to collaborating
 
 ps. if you use this repository please provide credits to the people or institutions mentioned above
 
-![plot](https://github.com/[lepardov]/[Snapshot_Safari]/images/snapshotsafari_gral_logo.png")
+
