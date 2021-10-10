@@ -601,12 +601,12 @@ this contains the scientific name
 traits <- read_csv("data_in/+traits_in_sp_records_updated.csv")
 ```
 
-    ## Rows: 91 Columns: 14
+    ## Rows: 100 Columns: 24
 
     ## -- Column specification --------------------------------------------------------
     ## Delimiter: ","
-    ## chr (12): Scien.Code, Comm.Code, Snapshot.Name, Common.Name, Scientific.Name...
-    ## dbl  (2): id, Mass.kg
+    ## chr (17): Scien.Code, Comm.Code, Snapshot.Name, Common.Name, Scientific.Name...
+    ## dbl  (7): #ID, Weight.Kg, W.Male, W.female, Activity.Cycle, Terrestriality, ...
 
     ## 
     ## i Use `spec()` to retrieve the full column specification for this data.
@@ -621,7 +621,7 @@ not in traits
 unique(sp_rec$Scientific.Name)[!unique(sp_rec$Scientific.Name) %in% traits$Scientific.Name]
 ```
 
-    ## [1] NA
+    ## [1] "Parahyeana brunnea"
 
 ``` r
 unique(traits$Scientific.Name)
@@ -646,7 +646,7 @@ unique(traits$Scientific.Name)
     ## [33] "Lepus capensis"                "Lepus saxatilis"              
     ## [35] "Pedetes capensis"              "Alcelaphus buselaphus"        
     ## [37] "Atelerix frontalis"            "Hippopotamus amphibius"       
-    ## [39] "Mellivora capensis"            "Parahyeana brunnea"           
+    ## [39] "Mellivora capensis"            "Parahyeana<U+00A0>brunnea"    
     ## [41] "Crocuta crocuta"               "Aepyceros melampus"           
     ## [43] "Canis mesomelas"               "Canis adustus"                
     ## [45] "Oreotragus oreotragus"         "Tragelaphus strepsiceros"     
@@ -672,7 +672,7 @@ unique(traits$Scientific.Name)
     ## [85] "Kobus ellipsiprymnus"          "Poecilogale albinucha"        
     ## [87] "Lycaon pictus"                 "Connochaetes gnou"            
     ## [89] "Connochaetes taurinus"         "Equus quagga burchellii"      
-    ## [91] "Equus zebra"
+    ## [91] "Equus zebra"                   NA
 
 show all unique entries of the snapshot names in spp records that are
 not in traits
@@ -681,8 +681,7 @@ not in traits
 unique(sp_rec$Common.Name)[!unique(sp_rec$Common.Name) %in% traits$Snapshot.Name]
 ```
 
-    ## [1] "rodent"     "rhinoceros" "mongoose"   "antelope"   "zebra"     
-    ## [6] "jackal"
+    ## character(0)
 
 now with covariates file
 
