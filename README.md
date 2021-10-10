@@ -31,14 +31,13 @@ Most of these functions are used in other scripts included in this repository
 `2_species_exploration`    
 	This is a protocol with the most important steps to analyze a typical Snapshot or other camera trap report. Useful to understand the general patterns in the community. Includes functions to do mapping of richness and events (not standardize by effort), calculate survey effort and others useful exploratory plots of species records. This is a workable version with comments.
 
-  
 `3a_gral_biodiv_analysis`  
 	This is a general (gnral) protocol for creating a basic biodiversity report based on species records (camtrap records).
 	This includes all codes and outputs details as well as some useful visualizations. It is the commented code for 3b_clean_report script
- 
- *note: if your species records come from Digikam/CamTrapR, first convert this table into snapshot format first using the "digi_snap" function. 
- e.g. 
- 		newrep <- digi_snap(rep_MTZ, sitecode = "GOE")    
+
+*note: if your species records come from Digikam/CamTrapR, first convert this table into snapshot format first using the "digi_snap" function. 
+e.g. 
+  	newrep <- digi_snap(rep_MTZ, sitecode = "GOE")    
  		1 st arg = object with the original digikam report format  
  		2 nd arg = new col with the code of the site, e.g "GOE" will be the string for the whole col  
 			with this run the independance before starting richness and RAI analysis  
