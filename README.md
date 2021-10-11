@@ -59,7 +59,7 @@ This will transform a typical Snapshot Safari report of species records to Darwi
 
 `6_create_detection_histories`  
 
-Create detection history for single species and multiple species in the  correct format for multispecies occupancy modeling. The results is either one csv for each species 
+Create detection history for single species and multiple species in the  correct format for multispecies occupancy modeling. The result is either one csv for each species 
 or one csv with all species stacked together needed for some analyses.
 
 7. A general protocol for EDA (Exploratory Data Analysis) of covariates  
