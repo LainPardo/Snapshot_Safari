@@ -1,7 +1,8 @@
 
 <p align="center">
-![](images/snapshotsafari_gral_logo.png?)
+<img src="images/snapshotsafari_gral_logo.png"> 
 </p>
+
 
 # Snapshot_Safari Readme:
 
