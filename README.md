@@ -12,7 +12,7 @@ There are some customized functions that can help to process data from the origi
 [Snapshot Safari project](https://www.zooniverse.org/organizations/meredithspalmer/snapshot-safari) is a large-scale international camera
 trap network to study and monitor the diversity and ecological dynamics of southern and eastern African mammals (see [Pardo et al 2021](https://sajs.co.za/article/view/8134)).
 
-The project is coordinated in South Africa by Nelson by Mandela University’s Wildlife Ecology Lab. The images collected by the CTs 
+The project is coordinated in South Africa by Nelson Mandela University’s Wildlife Ecology Lab. The images collected by the CTs 
 (as much as thousands per site) are sent to the United States (University of Minnesota) to be processed via a citizen science platform 
 (Zooniverse) and machine learning (a popular IT field that allows automatized recognition of elements in an image).
 
