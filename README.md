@@ -20,7 +20,7 @@ Contents (main scripts)
 
 `1_Snapshot_source_functions`   
 
-	This is a set of customized functions created to analyze camera trap data, which includes:  
+This is a set of customized functions created to analyze camera trap data, which includes:  
 	  	1. standardize names, columns, and filter non-mammals (among others)   
 	  	2. get only independent records of 60 mins (you can change this)  
 	  	3. Calculate RAI and species number analysis (general reports)  
